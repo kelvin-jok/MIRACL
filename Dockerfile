@@ -1,6 +1,6 @@
 ARG MIRACL_VERSION=latest
 #FROM mgoubran/miracl:base-$MIRACL_VERSION
-FROM mgoubran/miracl-modified:latest
+FROM mgoubran/miracl-base-modified:latest
 
 ADD . /code
 RUN ls /code
