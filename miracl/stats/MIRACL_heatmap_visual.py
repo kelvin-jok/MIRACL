@@ -20,7 +20,7 @@ if len(sys.argv) < 4:
    sys.exit()
 
 input_path=sys.argv[1]
-bg_img_path=sys.argv[2]
+brain_atlas_path=sys.argv[2]
 mask_vt_filename = sys.argv[3]
 
 
