@@ -20,6 +20,66 @@ from miracl import ATLAS_DIR
 from miracl.stats import reg_svg, stats_gui_heatmap_group
 
 # ----- Input Arguments ------
+def helpmsg():
+    return '''miracl stats heatmap_group -g1 [input path to group 1 data] -v [resolution (um)] 
+    Returns mean group heatmap plots, mean-smoothed-masked nii files, and registration-to-input data check svg animation (expect input data file to be formatted as .nii.gz)
+
+
+    ----------
+
+    For command-line / scripting
+
+    example: miracl stats heatmap_group -g1 group_1_dir -v 25 
+        Required arguments:
+        g1. Group 1 directory path 
+        v. labels Voxel size/Resolution in um
+
+
+        Optional arguments:
+        g2. Group 2 directory path 
+             NOTE: If g1 and g2 are used then will return heatmaps and mean nii files for g1, g2, and the difference (g2-g1)
+        gs. Gaussian Smoothing Sigma (Default: 4)         
+        p.  percentile (%%) threshold for registration-to-input data check svg animation(Default: 10). 
+             NOTE: Must be non-negative integer below 100. If reg_check_... file has low visibility reduce default threshold  
+        cp. matplotlib colourmap for positive values (Default: Reds)
+             NOTE: website for custom colourmap options https://matplotlib.org/stable/tutorials/colors/colormaps.html   
+        cn. matplotlib colourmap for negative values (Default: Blues)
+             NOTE: website for custom colourmap options https://matplotlib.org/stable/tutorials/colors/colormaps.html   
+
+
+        CUSTOM SLICING (Default: nan)
+            Note: Max custom slice index dependent on Voxel size/Resolution: 
+            10um max slice index -> sagittal: 1140 , coronal: 1320 , axial: 800 
+            25um max slice index -> sagittal: 456 , coronal: 528 , axial: 320
+            50um max slice index -> sagittal: 228 , coronal: 264 , axial: 160
+
+        s. slicing in sagittal direction usage: start_slice slice_increment number_of_slices number_of_rows number_of_columns
+        c. slicing in coronal direction  usage: start_slice slice_increment number_of_slices number_of_rows number_of_columns 
+        a. slicing in axial direction    usage: start_slice slice_increment number_of_slices number_of_rows number_of_columns
+
+            Note: All arguments must be greater than zero. number_of_rows x number_of_columns must be equal to or greater than number_of_slices
+            Ex. -s 60 50 7 2 4  
+                sagittal direction start at slice #60, increment by 50, 7 slices total, 2 rows, 4 columns. 
+                slice indexes chosen: 60, 110, 160, 210,   (row #1)
+                                      260, 310, 360        (row #2) 
+        DEFAULT SLICING     
+        NOTE: If s, c, and a are not specified then default is used (7 slices spread across sagittal, coronal, and axial direction based on image size) 
+
+        f. figure dimensions: width, height (Max: 60 60. Default dependent on number of slices and axes)
+
+        d. directory output (Default: current working directory)
+             NOTE: use underscore for names instead of space 
+             Ex. ACCEPTABLE   "/data/control_group"       
+                 UNACCEPTABLE "/data/control group" 
+        o. output filename (Default: group_1 group_2 group_difference) 
+             NOTE 1: use underscore for names instead of space 
+             NOTE 2: If only -g1 used enter 1 name. If -g2 is used enter 3 names 
+             Ex. ACCEPTABLE   "-f control_group treated_group group_difference"       
+                 UNACCEPTABLE "-f control group treated group group difference" 
+        e. heatmap figure extension (png, jpg, tiff, pdf, etc... (according to matplotlib.savefig documentation). Default: tiff) 
+        d. dpi dots per inch (Default: 500). If plotting over 100 images recommended to increase default DPI. If outline/edges are faint increase default DPI
+    '''
+
 
 def parsefn():
     parser = argparse.ArgumentParser(description='', usage=helpmsg(), formatter_class=argparse.RawTextHelpFormatter)
@@ -132,30 +192,103 @@ def parse_inputs(parser, args):
     outfile = args.outfile
     extension = args.extension
     dpi = args.dpi
-    multi=False
 
-    #Validate paths
+    # validation functions
+
     def path_check(path):
         if os.path.exists(path) == False:
             assert os.path.exists(path), '%s does not exist ... please check path and rerun script' % path
         else:
             return (path)
 
+    def find_value(value, arr, exp_bool, msg):
+        if (value in arr) == exp_bool:
+            raise Exception(msg)
+
+    def min_check(arr, threshold, msg):
+        if np.amin(arr) < threshold:
+            raise Exception(msg)
+
+    # Validate paths
     if isinstance(g1, type(None)):
         raise Exception("-g1 group1 must be specified")
     path_check(g1)
 
-    if not isinstance(g2, type(None)):
-        path_check(g2)
-        multi=True
+    for path in [g2, outdir]:
+        if isinstance(path, str):
+            path_check(path)
+            if path == g1:
+                raise Exception("g1, g2, and directory output must be different folders. g1: {}, g2: {}, dir_outfile {} ".format(g1, g2, outdir))
+            # validate matplotlib colourmap choices
+            cm.get_cmap(cp)
+            if isinstance(g2, str):
+                cm.get_cmap(cn)
+
+    # validate vox, sigma, and percentile
+    find_value(vox, [10, 25, 50], False,"".join(("-v vox resolution must either be 10, 25, 50. Current Value: {}".format(vox))))
+    min_check(sigma, 0, "".join(("-gs sigma value must not be below zero. Current value: {}".format(sigma))))
+    min_check(percentile, 0,"".join(("-p percentile value must be non-negative integer. Current Value: {}".format(percentile))))
+    min_check(100, percentile, "".join(("-p percentile value must be non-negative integer below 100. Current Value: {}".format(percentile))))
+
+    # Validate slicing arguments
+    # NOTE: Image array is formatted as img[P, I, L]. Order in accordance with LPI convention. x-position -> img[:,:,x], y-position -> img[y,:,:], z-position-> img[:,z,:]
+    x = -1
+    y = -1
+    z = -1
+    # check if custom slicing and validate
+    row = []
+    col = []
+    for axis, tag in zip([sagittal, coronal, axial], ["s/sagittal", "c/coronal", "a/axial"]):
+        if type(axis[-1]) != float:
+            min_check(axis[0], 0, "".join(("-", tag + " start_slice must not be a negative number. Current value: {}".format(axis[0]))))
+            min_check(axis[1], 1,"".join(("-", tag + " interval must not less than 1. Current value: {}".format(axis[1]))))
+            min_check(axis[2], 1, "".join(("-", tag + " number_of_slices  must not be less than 1. Current value: {}".format(axis[2]))))
+            min_check(axis[3] * axis[4], axis[2], "".join(("-",tag + " number_of_rows x number_of_columns is less than number_of_slices. row x col value: {} x {} = {}. Number_of_slices {}".format(
+                     axis[3], axis[4], axis[3] * axis[4], axis[2]))))
+            row.append(axis[3])
+            col.append(axis[4])
+
+            if tag == "s/sagittal":
+                x = 0
+            elif tag == "c/coronal":
+                y = x + 1
+            elif tag == "a/axial":
+                z = max(x, y) + 1
+
 
     # if default slicing
-    x = 0
-    y = 1
-    z = 2
+    if x == y and y == z:
+        x = 0
+        y = 1
+        z = 2
+
+    # Validate DPI x row/col or height/width doesn't exceed maximum pixel size. Note: max width and height capped at 60
+    if figure_dim == None and len(row) > 0:
+        max_col = min(np.amax(col), 60)
+        max_row = min(sum(row), 60)
+        min_check(65536 / dpi, max_row, "".join(("Axis Rows and dpi, Height Resolution exceeds maximum. Rows: {}. DPI: {}. (Largest value of either Max Height or Total Rows) x DPI = {} x {} = {}. Cannot exceed 65535. Note: Max Height is capped at 60".format(
+                                                row, dpi, max_row, dpi, max_row * dpi))))
+        min_check(65536 / dpi, max_col, "".join(("Axis Columns and dpi, Width Resolution exceeds maximum. Cols: {}. DPI: {}. (Largest value of either Max Width or Max Col) x DPI = {} x {} = {}. Cannot exceed 65535. Note: Max Width is capped at 60".format(
+                                                col, dpi, max_col, dpi, max_col * dpi))))
+    if figure_dim != None:
+        min_check(65536 / dpi, figure_dim[0], "".join(("-f/figure_dim and -dpi, Height resolution exceeds maximum. Height: {}. DPI: {}. Height x DPI = {}. Cannot exceed 65535".format(
+                                                    figure_dim[0], dpi, figure_dim[0] * dpi))))
+        min_check(65536 / dpi, figure_dim[1], "".join(("-f/figure_dim and -dpi, Width resolution exceeds maximum. Width: {}. DPI: {}. Width x DPI = {}. Cannot exceed 65535".format(
+                                                    figure_dim[1], dpi, figure_dim[1] * dpi))))
+    multi = False
+    # validate outfile names
+    if isinstance(g2, str):
+        find_value(3, [len(outfile)], False,
+                   "-o Must enter three arguments. Detected {} Arguments: {} \n Names must use underscore instead of space. \n Ex. ACCEPTABLE -o control_group treated_group difference_group \n UNACCEPTABLE -o control group treated group difference group".format(
+                       len(outfile), outfile))
+        multi = True
+    else:
+        if outfile != ['group_1', 'group_2', 'group_difference']:
+            find_value(1, [len(outfile)], False,
+                       "-o Must enter one argument. Detected {} Arguments: {} \n Names must use underscore instead of space. \n Ex. ACCEPTABLE -o control_group \n UNACCEPTABLE -o control group ".format(
+                           len(outfile), outfile))
 
     return g1, g2, vox, sigma, percentile, cp, cn, sagittal, coronal, axial, x, y, z, figure_dim, outdir, outfile, extension, dpi, multi
-
 
 def grp_mean(input_path, brain_template, outdir, x, y, z, percentile):
     '''read input image files, return mean and shape. Calls reg_svg script to generate registration-to-input data check svg animation'''

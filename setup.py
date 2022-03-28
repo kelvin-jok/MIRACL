@@ -38,7 +38,8 @@ setup(
     ],
     install_requires=[
         'numpy', 'pandas', 'scipy', 'opencv-python', 'tifffile', 'nibabel', 'argparse', 'tables', 'statsmodels',
-        'allensdk', 'lightning-python', 'joblib', 'matplotlib', 'argcomplete', 'dipy', 'seaborn', 'pyqt5', 'nipype'
+        'allensdk', 'lightning-python', 'joblib', 'matplotlib', 'argcomplete', 'dipy', 'seaborn', 'pyqt5', 'nipype',
+        'nilearn', 'scikit-learn', 'svgwrite'
     ],
     entry_points={'console_scripts': ['miracl=miracl.cli:main'],
                   'gui_scripts': ['miraclGUI=miracl.miraclGUI:main']},
