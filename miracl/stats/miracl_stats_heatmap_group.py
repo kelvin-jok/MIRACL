@@ -3,6 +3,7 @@
 ## This script take experimental data and plots heatmaps, qc registration, and exports mean nii files.
 
 import time
+from loguru import logger
 import argparse
 import fnmatch
 import os
@@ -18,6 +19,11 @@ from numpy import float32, float64
 from sklearn.preprocessing import binarize
 from miracl import ATLAS_DIR
 from miracl.stats import reg_svg, stats_gui_heatmap_group
+from math import ceil, nan
+
+# Log errors to file in current working directory
+logger.add(os.getcwd() + "/miracl_stats_heatmap_group_error.log", level='ERROR', mode="w")
+
 
 # ----- Input Arguments ------
 def helpmsg():
@@ -583,12 +589,15 @@ def plot(mean_img, mask, group, vox, cut_coords, cut_len, sagittal, coronal, axi
         fig.savefig("".join((outdir, "/" + outfile, "_mean_plot.", extension)), bbox_inches="tight", pad_inches=0)
     print("".join((outfile, " mean plot saved")))
 
+@logger.catch
 def main(args):
     # read input arguments
     parser = parsefn()
     g1, g2, vox, sigma, percentile, cp, cn, sagittal, coronal, axial, x, y, z, figure_dim, outdir, outfile, extension, dpi, multi = parse_inputs(
         parser, args)
 
+    print("Step 1/{} : Completed Input Argument Validation".format(4 + int(multi * 3)))
+    start_time=time.time()
     # retrieve Atlas paths
     mask = os.path.join(ATLAS_DIR, 'ara/annotation/annotation_hemi_combined_%dum.nii.gz' % (vox))
     brain_template = os.path.join(ATLAS_DIR, 'ara/template/average_template_%dum.nii.gz' % (vox))
@@ -596,25 +605,33 @@ def main(args):
     # extract Atlas slices for background and outline
     mask_slices = slice_extract(mask, cut_coords, x, y, z, mask.split("/")[-1])
     temp_slices = slice_extract(brain_template, cut_coords, x, y, z, brain_template.split("/")[-1])
+    print("Step 2/{} : Completed Extraction of Atlas Slices".format(4 + int(multi) * 3))
 
     # calculate input slices with user specified axis.
     # Note:  Image array is formatted as img[P, I, L]. Order in accordance with LPI convention. x-position-> img[:,:,x], y-position-> img[y,:,:], z-position> img[:,z,:]
     img1, img_shape = grp_mean(g1, brain_template, outdir, x, y, z, percentile)
+    print("Step 3/{} : Completed Group 1 Mean and QC Reg Check SVG File".format(4 + int(multi) * 3))
 
     # plot first heatmap
     plot(img1, mask, 0, vox, cut_coords, cut_len, sagittal, coronal, axial, figure_dim, outdir, outfile[0], sigma, cn,
          cp, mask_slices, temp_slices,
          x, y, z, extension, dpi)
+    print("Step 4/{} : Completed {} Heatmap Figure and Mean Nii File".format(4 + int(multi * 3), outfile[0]))
 
     # check if argument g2 was specified then plots heatmaps if True
     if multi == True:
         img2, img_shape = grp_mean(g2, brain_template, outdir, x, y, z, percentile)
+        print("Step 5/7 : Completed Group 2 Mean and QC Reg Check SVG File".format(outfile[1]))
         plot(img2, mask, 1, vox, cut_coords, cut_len, sagittal, coronal, axial, figure_dim, outdir, outfile[1], sigma,
              cn, cp, mask_slices,
              temp_slices, x, y, z, extension, dpi)
+        print("Step 6/7 : Completed {} Heatmap Figure and Mean Nii File".format(outfile[1]))
         plot(img2 - img1, mask, 2, vox, cut_coords, cut_len, sagittal, coronal, axial, figure_dim, outdir, outfile[2],
              sigma, cn, cp, mask_slices,
              temp_slices, x, y, z, extension, dpi)
+        print("Step 7/7 : Completed {} Heatmap Figure and Mean Nii File".format(outfile[2]))
+    end_time = time.time()
+    print("Completed in {} seconds".format(end_time - start_time))
 
 if __name__ == "__main__":
     main(sys.argv)
