@@ -177,7 +177,11 @@ def parsefn():
 def parse_inputs(parser, args):
     if sys.argv[-2] == 'stats' and sys.argv[-1] == 'heatmap_group':
         print("Running in GUI mode")
-
+        # pass the results of the gui here
+        args = stats_gui_heatmap_group.main()
+        if hasattr(args, "run") == False:
+            print("Heatmap GUI Window was closed")
+            sys.exit()
     else:
         if isinstance(args, list):
             args, unknown = parser.parse_known_args()
