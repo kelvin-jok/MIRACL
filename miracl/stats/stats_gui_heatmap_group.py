@@ -12,57 +12,116 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 from math import nan
 
-# heatmap GUI setup
+#heatmap GUI HELP window
+class help_window(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Heatmap GUI Help")
+        help_label=QtWidgets.QLabel()
+        help_label.setText(
+    '''
+Returns mean group heatmap plots, mean-smoothed-masked nii files, and svg qc check registration on input data (expect input data file to be formatted as .nii.gz)
 
+----------
+
+Required arguments:
+Group 1 Input Data Folder
+Voxel Size/Resolution in um
+
+Optional arguments:
+Group 2 Input Data Folder
+NOTE: If Group 1 and Group 2 are used then will return heatmaps and mean nii files for Group 1, Group 2, and the difference (Group 2- Group 1)
+
+Gaussian Smoothing Sigma (Default: 4) 
+Percentile (%) threshold for registration-to-input data check svg animation (Default: 10)
+NOTE: Percentile must be non-negative integer below 100. If reg_check_... file has low visibility reduce default threshold
+
+Colourmap for positive values (Default: Reds)
+NOTE: website for custom colourmap options https://matplotlib.org/stable/tutorials/colors/colormaps.html   
+Colourmap for negative values (Default: Blues)
+NOTE: website for custom colourmap options https://matplotlib.org/stable/tutorials/colors/colormaps.html   
+
+CUSTOM SLICING (Default: nan)
+Click Checkbox [] Enable Custom Sagittal/Coronal/Axial Slicing to use
+Note: Max slice index dependent on Voxel size/Resolution: 
+10um max slice index -> sagittal: 1139 , coronal: 1319 , axial: 799 
+25um max slice index -> sagittal: 455 , coronal: 527 , axial: 319
+50um max slice index -> sagittal: 227 , coronal: 263 , axial: 159
+
+axes slicing usage: start_slice, slice_increment, number_of_slices, number_of_rows, number_of_columns
+
+Note: All arguments must be greater than zero. 
+      number_of_rows x number_of_columns must be equal to or greater than number_of_slices
+
+    Ex. Enabled Custom Sagittal Slicing: 60 50 7 2 4  
+        sagittal direction start at slice #60, increment by 50, 7 slices total, 2 rows, 4 columns. 
+        slice indexes chosen: 60, 110, 160, 210,   (row #1)
+                                            260, 310, 360        (row #2) 
+DEFAULT SLICING     
+NOTE: If None of the custom slicing axes are enabled then default slicing parameters are used 
+
+
+Figure dimensions: width, height (Max: 60 x 60. Default dependent on number of slices and axes)
+CUSTOM FIGURE DIMENSIONS
+Click Checkbox [] Enable Custom Figure Dimensions to use.
+
+Output Directory (Default: current working directory)
+
+Output filenames (Default: group_1) 
+NOTE 1: use underscore for names instead of space 
+NOTE 2: If only Group 1 used then specify Output Filename Group 1. If Group 2 specify all 3 arguments (Output Filename Group 1, Output Filename Group 2, Output Filename Difference of Groups (Group 2 - Group 1))
+Ex. ACCEPTABLE   "control_group"       
+    UNACCEPTABLE "control group" 
+
+Figure extension (png, jpg, tiff, pdf, etc... (according to matplotlib.savefig documentation). Default: tiff) 
+
+DPI dots per inch (Default: 500). If plotting over 100 images recommended to increase default DPI. If outline/edge is faint increase default DPI
+''')
+
+        self.layout = QtWidgets.QFormLayout()
+        self.layout.addRow(help_label)
+        self.setLayout(self.layout)
+
+#heatmap GUI setup
 class STATSHeatmapMenu(QtWidgets.QWidget):
 
     def __init__(self):
         # create GUI
         QtWidgets.QMainWindow.__init__(self)
         super(STATSHeatmapMenu, self).__init__()
-        self.setWindowTitle('STATS Heatmap Analysis')
+        self.setWindowTitle('STATS Heatmap Group Analysis')
 
-        # Set the window dimensions
-        # self.resize(500,200)
-
+        mandatory_box = QtWidgets.QGroupBox("Mandatory Arguments")
+        self.optional_box = QtWidgets.QGroupBox("Optional Arguments")
+        self.opt_hide = QtWidgets.QCheckBox("Show Optional Arguments")
+        self.opt_hide_status = self.opt_hide.isChecked()
         # Create labels which displays the path to our chosen file
         self.lbl1 = QtWidgets.QLabel('No folder selected for Group 1 input data')
         self.lbl2 = QtWidgets.QLabel('No folder selected for Group 2 input data')
         self.lbl3 = QtWidgets.QLabel('No folder selected for Output. Default: Current Working Directory')
-        # Create labels for Notes/Text
-        group2_note = QtWidgets.QLabel()
-        group2_note.setText(
+
+        # Create labels for notes/text
+        group2_note = QtWidgets.QLabel(
             'NOTE: If Group 2 folder is selected then will generate heatmaps for Group 1, Group 2, and the Difference of Groups (Group 2 - Group 1)')
-        group2_note.setAlignment(QtCore.Qt.AlignLeft)
-        group2_note.setFont(QtGui.QFont("Sans Serif 10", weight=QtGui.QFont.Black))
-        title_cmap = QtWidgets.QLabel()
-        title_cmap.setText('Use Website or Button Below to Explore Colourmap Options')
-        title_cmap.setAlignment(QtCore.Qt.AlignRight)
-        website = QtWidgets.QLabel()
+        title_cmap = QtWidgets.QLabel('Use Website or Button Below to Explore Colourmap Options')
+        website = QtWidgets.QLabel('https://matplotlib.org/stable/tutorials/colors/colormaps.html')
         website.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-        website.setText('https://matplotlib.org/stable/tutorials/colors/colormaps.html')
-        website.setAlignment(QtCore.Qt.AlignRight)
-        custom_slice = QtWidgets.QLabel()
-        custom_slice.setText(
+        custom_slice = QtWidgets.QLabel(
             'NOTE: If None of the custom slicing axes are enabled (sagittal, coronal, axial) then the default slicing parameters will be used')
-        custom_slice.setAlignment(QtCore.Qt.AlignLeft)
-        custom_slice.setFont(QtGui.QFont("Sans Serif 10", weight=QtGui.QFont.Black))
-        output_note = QtWidgets.QLabel()
-        output_note.setText('NOTE: Output Filenames MUST NOT uses spaces. Use underscore instead')
-        output_note.setAlignment(QtCore.Qt.AlignLeft)
-        output_note.setFont(QtGui.QFont("Sans Serif 10", weight=QtGui.QFont.Black))
-        group2_selected = QtWidgets.QLabel()
-        group2_selected.setAlignment(QtCore.Qt.AlignLeft)
-        group2_selected.setText('NOTE: Must Specify All Output Filenames if Group 2 input data folder is selected')
-        group2_selected.setFont(QtGui.QFont("Sans Serif 10", weight=QtGui.QFont.Black))
+        default_dim = QtWidgets.QLabel('NOTE: Default Dimensions are calculated based on number of rows and columns')
+        output_note = QtWidgets.QLabel('NOTE: Output Filenames MUST NOT uses spaces. Use underscore instead')
+        group2_selected = QtWidgets.QLabel(
+            'NOTE: Must Specify All Output Filenames if Group 2 input data folder is selected')
+        [x.setFont(QtGui.QFont("Sans Serif 10", weight=QtGui.QFont.Black)) for x in
+         [group2_note, custom_slice, default_dim, output_note, group2_selected]]
 
         # Create push buttons for Folder Selection
-        btn1 = QtWidgets.QPushButton('Select Group 1 input data folder', self)
-        btn2 = QtWidgets.QPushButton('Select Group 2 input data folder', self)
-        btn3 = QtWidgets.QPushButton('Select Output folder', self)
+        self.btn1 = QtWidgets.QPushButton('Select Group 1 input data folder', self)
+        self.btn2 = QtWidgets.QPushButton('Select Group 2 input data folder', self)
+        self.btn3 = QtWidgets.QPushButton('Select Output folder', self)
 
         # colourmap push button option
-        btn4 = QtWidgets.QPushButton('Matplotlib Ver. 3.4.2 Colourmap Options', self)
+        btn4 = QtWidgets.QPushButton('Matplotlib Pyplot Colourmap Options', self)
 
         # Enable/Disabled Checkbox Options
         self.sagittal_enable = QtWidgets.QCheckBox("Enable  Custom Sagittal Slicing")
@@ -73,8 +132,16 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         self.axial_status = self.axial_enable.isChecked()
         self.fig_enable = QtWidgets.QCheckBox("Enable Custom Figure Dimensions")
         self.fig_status = self.fig_enable.isChecked()
+
         # Run GUI Button
         run = QtWidgets.QPushButton('Run', self)
+        run.setStyleSheet("background-color: rgb(53,190,68);")
+        # Help/Documention Button & Layout
+        help_doc = QtWidgets.QPushButton('Help', self)
+        help_doc.setStyleSheet("background-color: rgb(255,255,90);")
+        help_run_layout = QtWidgets.QHBoxLayout()
+        help_run_layout.addWidget(help_doc)
+        help_run_layout.addWidget(run)
 
         # Create other inputs (Spinbox/line edits)
         self.gauss = QtWidgets.QDoubleSpinBox()
@@ -85,8 +152,13 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         self.voxels.setEditable(True)
         self.voxels.lineEdit().setReadOnly(True)
         self.voxels.showPopup = self.showPopupAndCheck
-        self.voxels.addItems(["10", "25", "50"])
-        self.voxels.setCurrentIndex(1)
+        self.voxels.addItems(["", "10", "25", "50"])
+        self.voxels.setCurrentIndex(0)
+        self.percentile = QtWidgets.QSpinBox()
+        self.percentile.setValue(10)
+        self.percentile.setMinimum(0)
+        self.percentile.setMaximum(99)
+        self.percentile.setAlignment(QtCore.Qt.AlignRight)
         self.cmap_pos = QtWidgets.QLineEdit()
         self.cmap_pos.setText("Reds")
         self.cmap_pos.setAlignment(QtCore.Qt.AlignRight)
@@ -97,41 +169,39 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         # custom slice axis input and layout
         self.axis = []
         self.slice_layout = []
-
         for i in range(3):
-            self.slices = []
+            slices = []
             self.slice_layout.append(QtWidgets.QHBoxLayout())
             for j in range(5):
-                self.slices.append(QtWidgets.QSpinBox())
-                self.slices[j].setMinimum(1)
-                self.slices[j].setMaximum(10000)
-                self.slices[j].setAlignment(QtCore.Qt.AlignLeft)
-                self.slices[j].setDisabled(True)
-                self.slice_layout[i].addWidget(self.slices[j])
-            self.axis.append(self.slices)
-            del self.slices
+                slices.append(QtWidgets.QSpinBox())
+                slices[j].setMinimum(1)
+                slices[j].setMaximum(10000)
+                slices[j].setAlignment(QtCore.Qt.AlignLeft)
+                slices[j].setDisabled(True)
+                self.slice_layout[i].addWidget(slices[j])
+            self.axis.append(slices)
 
         # custom figure dimensions input and layout
-        self.figure_dimensions_width = QtWidgets.QDoubleSpinBox()
-        self.figure_dimensions_width.setMinimum(1)
-        self.figure_dimensions_width.setMaximum(60.0)
-        self.figure_dimensions_width.setValue(7.0)
-        self.figure_dimensions_width.setAlignment(QtCore.Qt.AlignLeft)
-        self.figure_dimensions_width.setDisabled(True)
-        self.figure_dimensions_height = QtWidgets.QDoubleSpinBox()
-        self.figure_dimensions_height.setMinimum(1)
-        self.figure_dimensions_height.setMaximum(60.0)
-        self.figure_dimensions_height.setValue(3.0)
-        self.figure_dimensions_height.setAlignment(QtCore.Qt.AlignLeft)
-        self.figure_dimensions_height.setDisabled(True)
-
+        fig_width = QtWidgets.QDoubleSpinBox()
+        fig_width.setMinimum(1)
+        fig_width.setMaximum(60.0)
+        fig_width.setValue(7.0)
+        fig_width.setAlignment(QtCore.Qt.AlignLeft)
+        fig_width.setDisabled(True)
+        fig_height = QtWidgets.QDoubleSpinBox()
+        fig_height.setMinimum(1)
+        fig_height.setMaximum(60.0)
+        fig_height.setValue(3.0)
+        fig_height.setAlignment(QtCore.Qt.AlignLeft)
+        fig_height.setDisabled(True)
+        self.fig_dim = [[fig_width, fig_height]]
         dim_layout = QtWidgets.QHBoxLayout()
-        dim_layout.addWidget(self.figure_dimensions_width)
-        dim_layout.addWidget(self.figure_dimensions_height)
+        dim_layout.addWidget(fig_width)
+        dim_layout.addWidget(fig_height)
 
         # Remaining inputs (Spinbox/line edits)
         self.outfiles_g1 = QtWidgets.QLineEdit()
-        self.outfiles_g1.setText("Group_1")
+        self.outfiles_g1.setText("group_1")
         self.outfiles_g1.setAlignment(QtCore.Qt.AlignRight)
         self.outfiles_g2 = QtWidgets.QLineEdit()
         self.outfiles_g2.setAlignment(QtCore.Qt.AlignRight)
@@ -145,146 +215,123 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         self.dots_per_inch.setMaximum(1200)
         self.dots_per_inch.setValue(500)
         self.dots_per_inch.setAlignment(QtCore.Qt.AlignRight)
-        self.template = QtWidgets.QLineEdit()
-        self.template.setText("_brainmask")
-        self.template.setAlignment(QtCore.Qt.AlignRight)
 
-        # layout for input widgets
-        self.layout = QtWidgets.QFormLayout()
-        self.layout.addRow(self.lbl1, btn1)
-        self.layout.addRow("Voxel Size - Choose from 10, 25, or 50 um", self.voxels)
-        self.layout.addRow(self.lbl2, btn2)
-        self.layout.addRow(group2_note)
-        self.layout.addRow("Gaussian smoothing sigma (Non-negative number. ex: 1, 2 or 2.5)", self.gauss)
-        self.layout.addRow(title_cmap)
-        self.layout.addRow(website)
-        self.layout.addRow("", btn4)
-        self.layout.addRow("Colourmap for Positive Values", self.cmap_pos)
-        self.layout.addRow("Colourmap for Negative Values", self.cmap_neg)
-        self.layout.addRow("Enable Custom Sagittal Slicing", self.sagittal_enable)
-        self.layout.addRow(
+        # layout for mandatory arguments input widgets
+        mand_form = QtWidgets.QFormLayout()
+        mand_form.addRow(self.lbl1, self.btn1)
+        mand_form.addRow("Voxel Size/Resolution - Choose from 10, 25, or 50 um", self.voxels)
+        mandatory_box.setLayout(mand_form)
+
+        self.scrollArea = QtWidgets.QScrollArea()
+        self.scrollArea.setWidgetResizable(True)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(mandatory_box)
+        layout.addWidget(self.opt_hide)
+        layout.addWidget(self.scrollArea)
+        layout.addLayout(help_run_layout)
+        self.setLayout(layout)
+        # layout optional arguments
+        opt_form = QtWidgets.QFormLayout()
+        opt_form.addRow(self.lbl2, self.btn2)
+        opt_form.addRow(group2_note)
+        opt_form.addRow("Gaussian smoothing sigma (Non-negative number. ex: 1, 2 or 2.5)", self.gauss)
+        opt_form.addRow("percentile (%) threshold for registration-to-input data check svg animation", self.percentile)
+        opt_form.addRow("", title_cmap)
+        opt_form.addRow("", website)
+        opt_form.addRow("", btn4)
+        opt_form.addRow("Colourmap for Positive Values", self.cmap_pos)
+        opt_form.addRow("Colourmap for Negative Values", self.cmap_neg)
+        opt_form.addRow("Enable Custom Sagittal Slicing", self.sagittal_enable)
+        opt_form.addRow(
             "sagittal slicing: start_slice_number, interval, number_of_slices, number_of_rows, number_of_columns",
             self.slice_layout[0])
-        self.layout.addRow("Enable Custom Coronal Slicing", self.coronal_enable)
-        self.layout.addRow(
+        opt_form.addRow("Enable Custom Coronal Slicing", self.coronal_enable)
+        opt_form.addRow(
             "coronal slicing: start_slice_number, interval, number_of_slices, number_of_rows, number_of_columns",
             self.slice_layout[1])
-        self.layout.addRow("Enable Custom Axial Slicing", self.axial_enable)
-        self.layout.addRow(
+        opt_form.addRow("Enable Custom Axial Slicing", self.axial_enable)
+        opt_form.addRow(
             "axial slicing: start_slice_number, interval, number_of_slices, number_of_rows, number_of_columns",
             self.slice_layout[2])
-        self.layout.addRow(custom_slice)
-        self.layout.addRow("Enable Custom Figure Dimensions", self.fig_enable)
-        self.layout.addRow("Figure Width and Height", dim_layout)
-        self.layout.addRow(self.lbl3, btn3)
-        self.layout.addRow(output_note)
-        self.layout.addRow("Output Filename Group 1", self.outfiles_g1)
-        self.layout.addRow(group2_selected)
-        self.layout.addRow("Output Filename Group 2", self.outfiles_g2)
-        self.layout.addRow("Output Filename Difference of Groups (Group 2 - Group 1)", self.outfiles_dif)
-        self.layout.addRow("Figure Extension", self.extensions)
-        self.layout.addRow("Dots Per Inch", self.dots_per_inch)
-        self.layout.addRow("template_suffix", self.template)
-        self.layout.addRow(run)
-        self.setLayout(self.layout)
+        opt_form.addRow(custom_slice)
+        opt_form.addRow("Enable Custom Figure Dimensions", self.fig_enable)
+        opt_form.addRow(default_dim)
+        opt_form.addRow("Figure Width and Height (inches)", dim_layout)
+        opt_form.addRow(self.lbl3, self.btn3)
+        opt_form.addRow(output_note)
+        opt_form.addRow("Output/Figure Filename Group 1", self.outfiles_g1)
+        opt_form.addRow(group2_selected)
+        opt_form.addRow("Output/Figure Filename Group 2", self.outfiles_g2)
+        opt_form.addRow("Output/Figure Filename Difference of Groups (Group 2 - Group 1)", self.outfiles_dif)
+        opt_form.addRow("Figure Extension", self.extensions)
+        opt_form.addRow("Dots Per Inch", self.dots_per_inch)
+        self.optional_box.setFlat(True)
+        self.optional_box.setLayout(opt_form)
+        self.resize(1050, 200)
 
+        # unhide optional arguments
+        self.opt_hide.clicked.connect(lambda: self.optional_arg(self.scrollArea, "opt_hide", "opt_hide_status"))
         # Connect the clicked signal to the get_functions handlers
-        btn1.clicked.connect(self.get_group1)
-        btn2.clicked.connect(self.get_group2)
-        btn3.clicked.connect(self.get_outdir)
+        self.btn1.clicked.connect(lambda: self.get_folder('Group 1 input data folder', self.lbl1, "group1"))
+        self.btn2.clicked.connect(lambda: self.get_folder('Group 2 input data folder', self.lbl2, "group2"))
+        self.btn3.clicked.connect(lambda: self.get_folder('Output folder', self.lbl3, "dir_outfile"))
         # Connect the clicked signal to message box to display Matplotlib Colour Options
-        btn4.clicked.connect(lambda: self.msgbox(
-            'Matplotlib Colourmap Options Ver. 3.4.2: \n Accent, Accent_r, Blues, Blues_r, BrBG, BrBG_r, BuGn, BuGn_r, BuPu, BuPu_r, CMRmap, CMRmap_r, Dark2, Dark2_r, GnBu, GnBu_r, Greens, Greens_r, Greys, Greys_r, OrRd, OrRd_r, Oranges, Oranges_r, PRGn, PRGn_r, Paired, Paired_r, Pastel1, Pastel1_r, Pastel2, Pastel2_r, PiYG, PiYG_r, PuBu, PuBuGn, PuBuGn_r, PuBu_r, PuOr, PuOr_r, PuRd, PuRd_r, Purples, Purples_r, RdBu, RdBu_r, RdGy, RdGy_r, RdPu, RdPu_r, RdYlBu, RdYlBu_r, RdYlGn, RdYlGn_r, Reds, Reds_r, Set1, Set1_r, Set2, Set2_r, Set3, Set3_r, Spectral, Spectral_r, Wistia, Wistia_r, YlGn, YlGnBu, YlGnBu_r, YlGn_r, YlOrBr, YlOrBr_r, YlOrRd, YlOrRd_r, afmhot, afmhot_r, autumn, autumn_r, binary, binary_r, bone, bone_r, brg, brg_r, bwr, bwr_r, cividis, cividis_r, cool, cool_r, coolwarm, coolwarm_r, copper, copper_r, crest, crest_r, cubehelix, cubehelix_r, flag, flag_r, flare, flare_r, gist_earth, gist_earth_r, gist_gray, gist_gray_r, gist_heat, gist_heat_r, gist_ncar, gist_ncar_r, gist_rainbow, gist_rainbow_r, gist_stern, gist_stern_r, gist_yarg, gist_yarg_r, gnuplot, gnuplot2, gnuplot2_r, gnuplot_r, gray, gray_r, hot, hot_r, hsv, hsv_r, icefire, icefire_r, inferno, inferno_r, jet, jet_r, magma, magma_r, mako, mako_r, nipy_spectral, nipy_spectral_r, ocean, ocean_r, pink, pink_r, plasma, plasma_r, prism, prism_r, rainbow, rainbow_r, rocket, rocket_r, seismic, seismic_r, spring, spring_r, summer, summer_r, tab10, tab10_r, tab20, tab20_r, tab20b, tab20b_r, tab20c, tab20c_r, terrain, terrain_r, turbo, turbo_r, twilight, twilight_r, twilight_shifted, twilight_shifted_r, viridis, viridis_r, vlag, vlag_r, winter, winter_r'
-            ))
-        # Connect the checked signal to the state_changed handlers
-        self.sagittal_enable.stateChanged.connect(self.s_state_changed)
-        self.coronal_enable.stateChanged.connect(self.c_state_changed)
-        self.axial_enable.stateChanged.connect(self.a_state_changed)
-        self.fig_enable.stateChanged.connect(self.fig_state_changed)
-        # Connect the clicked signal tp the print_input handler
-        run.clicked.connect(self.print_input)
+        btn4.clicked.connect(lambda: self.color_plot('Matplotlib Colourmap Options', plt.colormaps()))
 
+        # Connect the checked signal to the state_changed handlers
+        self.sagittal_enable.stateChanged.connect(
+            lambda: self.state_changed("sagittal_enable", "sagittal_status", 0, self.axis))
+        self.coronal_enable.stateChanged.connect(
+            lambda: self.state_changed("coronal_enable", "coronal_status", 1, self.axis))
+        self.axial_enable.stateChanged.connect(lambda: self.state_changed("axial_enable", "axial_status", 2, self.axis))
+        self.fig_enable.stateChanged.connect(lambda: self.state_changed("fig_enable", "fig_status", 0, self.fig_dim))
+        # Connect the clicked signal to the print_input handler
+        run.clicked.connect(self.print_input)
+        # Connect clicked signal to launch help window
+        help_doc.clicked.connect(self.help_window_show)
         # store the results of the STATS flags in an obj similar to args
         self.inputs = type('', (), {})()
 
-    # get folder directories
-    def get_group1(self):
-        input_folder = str(QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Group 1 input data folder'))
-        if input_folder:
-            input_folder_str = "Group 1 input data folder: " + input_folder
-            self.lbl1.setText(input_folder_str)
-            self.inputs.group1 = input_folder
-            print('Group 1 Input Data Folder :%s' % input_folder.lstrip())
+    def optional_arg(self, box, check, status):
+        '''window resizing for optional arguments'''
+        check = getattr(self, check).isChecked()
+        if check:
+            box.setWidget(self.optional_box)
+            box.resize(1025, 725)
+            self.resize(1050, 900)
         else:
-            self.inputs.group1 = None
-            self.lbl1.setText('No Folder selected')
+            box.takeWidget()
+            box.setWidget(QtWidgets.QGroupBox("Optional Arguments"))
+            box.resize(0, 0)
+            self.resize(1050, 200)
 
-    def get_group2(self):
-        input_folder = str(QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Group 2 input data folder'))
-        if input_folder:
-            input_folder_str = "Group 2 input data folder: " + input_folder
-            self.lbl2.setText(input_folder_str)
-            self.inputs.group2 = input_folder
-            print('Group 2 Input Data Folder :%s' % input_folder.lstrip())
+    def get_folder(self, msg, lbl, var):
+        '''get folder directories'''
+        folder = str(QtWidgets.QFileDialog.getExistingDirectory(self, 'Select ' + msg))
+        if folder:
+            lbl.setText(folder)
+            setattr(self.inputs, var, folder)
+            print(msg + " " + folder)
+        elif var == "dir_outfile":
+            lbl.setText(os.getcwd())
+            print(f"default output directory: {os.getcwd()}")
+            setattr(self.inputs, var, os.getcwd())
         else:
-            self.inputs.group2 = None
-            self.lbl2.setText('No Folder selected')
+            lbl.setText('No Folder selected')
+            setattr(self.inputs, var, None)
 
-    def get_outdir(self):
-        output_folder = str(QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Output folder'))
-        if output_folder:
-            output_folder_str = "Output folder: " + output_folder
-            self.lbl3.setText(output_folder_str)
-            self.inputs.dir_outfile = output_folder
-            print('Output Data Folder :%s' % output_folder.lstrip())
+    def state_changed(self, check, status, ind, arr):
+        '''check state of checkboxes'''
+        check = getattr(self, check).isChecked()
+        if check:
+            [arr[ind][i].setDisabled(False) for i in range(np.shape(arr)[1])]
         else:
-            self.inputs.get_outdir = os.getcwd()
-            self.lbl3.setText('No Folder selected')
+            [arr[ind][i].setDisabled(True) for i in range(np.shape(arr)[1])]
+        setattr(self, status, check)
 
-    # check state of checkboxes
-    def s_state_changed(self, int):
-        if self.sagittal_enable.isChecked():
-            for i in range(5):
-                self.axis[0][i].setDisabled(False)
-            self.sagittal_status = self.sagittal_enable.isChecked()
-        else:
-            for i in range(5):
-                self.axis[0][i].setDisabled(True)
-            self.sagittal_status = self.sagittal_enable.isChecked()
-
-    def c_state_changed(self, int):
-        if self.coronal_enable.isChecked():
-            for j in range(5):
-                self.axis[1][j].setDisabled(False)
-            self.coronal_status = self.coronal_enable.isChecked()
-        else:
-            for i in range(5):
-                self.axis[1][i].setDisabled(True)
-            self.coronal_status = self.coronal_enable.isChecked()
-
-    def a_state_changed(self, int):
-        if self.axial_enable.isChecked() == True:
-            for j in range(5):
-                self.axis[2][j].setDisabled(False)
-            self.axial_status = self.axial_enable.isChecked()
-        else:
-            for i in range(5):
-                self.axis[2][i].setDisabled(True)
-            self.axial_status = self.axial_enable.isChecked()
-
-    def fig_state_changed(self, int):
-        if self.fig_enable.isChecked():
-            self.figure_dimensions_width.setDisabled(False)
-            self.figure_dimensions_height.setDisabled(False)
-            self.fig_status = self.fig_enable.isChecked()
-        else:
-            self.figure_dimensions_width.setDisabled(True)
-            self.figure_dimensions_height.setDisabled(True)
-            self.fig_status = self.fig_enable.isChecked()
-
-    # Make Combobox pop-up menu stationary
     def showPopupAndCheck(self):
-
+        '''Make Combobox pop-up menu stationary'''
         QtWidgets.QComboBox.showPopup(self.voxels)
         popup = self.findChild(QtWidgets.QFrame)
         rect = popup.geometry()
@@ -295,11 +342,31 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         msg = QtWidgets.QMessageBox()
         msg.setIcon(QtWidgets.QMessageBox.Warning)
         msg.setText(text)
+        msg.setFont(QtGui.QFont("Sans Serif 8"))
         msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msg.exec_()
         closing = False
         return closing
 
+    def help_window_show(self):
+        self.help_window = help_window()
+        self.help_window.show()
+
+    def color_plot(self, title, colormaps):
+        '''display matplotlib colorbar options'''
+        size = len(colormaps[:])
+        fig = plt.figure(figsize=(15, 8), dpi=100)
+        fig.suptitle(title)
+        for x in range(size):
+            axes = fig.add_subplot(int(np.ceil(np.sqrt(size))), int(np.round_(np.sqrt(size), decimals=0)), x + 1)
+            cmap_name = colormaps[x]
+            cmap = plt.get_cmap(cmap_name)
+            colorbar.ColorbarBase(axes, cmap=cmap, orientation='horizontal')
+            axes.set_title(cmap_name, fontsize=10)
+            axes.tick_params(left=False, right=False, labelleft=False,
+                             labelbottom=False, bottom=False)
+        fig.subplots_adjust(left=0.01, right=0.99, top=0.875, bottom=0.01, hspace=2.5, wspace=0.25)
+        plt.show()
         # convert inputs to proper datatype, print and assign to self.inputs
 
     def print_input(self):
@@ -309,6 +376,7 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         self.inputs.dir_outfile = check_attr_dir_outfile(self)
         # retrieve other inputs
         gaussin = float(self.gauss.text())
+        percentile=int(self.percentile.text())
         voxel = int(self.voxels.currentText())
         cmap_p = str(self.cmap_pos.text())
         cmap_n = str(self.cmap_neg.text())
@@ -334,8 +402,8 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         else:
             a_cut = nan
         # retrieve figure dimensions
-        figure_dimensions_height = float(self.figure_dimensions_height.text())
-        figure_dimensions_width = float(self.figure_dimensions_width.text())
+        figure_dimensions_height = float(self.fig_dim[0][0].text())
+        figure_dimensions_width = float(self.fig_dim[0][1].text())
 
         if self.fig_status:
             figure_dimensions = [figure_dimensions_width, figure_dimensions_height]
@@ -360,6 +428,7 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         # assign to self.input to return to heatmap script
         self.inputs.sigma = gaussin
         self.inputs.vox = voxel
+        self.inputs.percentile = percentile
         self.inputs.colourmap_pos = cmap_p
         self.inputs.colourmap_neg = cmap_n
         self.inputs.sagittal = s_cut
@@ -373,6 +442,7 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
 
         print('gauss :%f' % gaussin)
         print('voxel :%i' % voxel)
+        print('percentile :%d' % percentile)
         print('colourmap_pos :%s' % cmap_p.lstrip())
         print('colourmap_neg :%s' % cmap_n.lstrip())
         print('sagittal : %s' % s_cut)
