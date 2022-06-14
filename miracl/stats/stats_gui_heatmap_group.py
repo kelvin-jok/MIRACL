@@ -101,26 +101,22 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         self.lbl3 = QtWidgets.QLabel('No folder selected for Output. Default: Current Working Directory')
 
         # Create labels for notes/text
-        group2_note = QtWidgets.QLabel(
-            'NOTE: If Group 2 folder is selected then will generate heatmaps for Group 1, Group 2, and the Difference of Groups (Group 2 - Group 1)')
-        title_cmap = QtWidgets.QLabel('Use Website or Button Below to Explore Colourmap Options')
-        website = QtWidgets.QLabel('https://matplotlib.org/stable/tutorials/colors/colormaps.html')
+        group2_note= QtWidgets.QLabel('NOTE: If Group 2 folder is selected then will generate heatmaps for Group 1, Group 2, and the Difference of Groups (Group 2 - Group 1)')
+        title_cmap=QtWidgets.QLabel('Use Website or Button Below to Explore Colourmap Options')
+        website=QtWidgets.QLabel('https://matplotlib.org/stable/tutorials/colors/colormaps.html') 
         website.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-        custom_slice = QtWidgets.QLabel(
-            'NOTE: If None of the custom slicing axes are enabled (sagittal, coronal, axial) then the default slicing parameters will be used')
-        default_dim = QtWidgets.QLabel('NOTE: Default Dimensions are calculated based on number of rows and columns')
-        output_note = QtWidgets.QLabel('NOTE: Output Filenames MUST NOT uses spaces. Use underscore instead')
-        group2_selected = QtWidgets.QLabel(
-            'NOTE: Must Specify All Output Filenames if Group 2 input data folder is selected')
-        [x.setFont(QtGui.QFont("Sans Serif 10", weight=QtGui.QFont.Black)) for x in
-         [group2_note, custom_slice, default_dim, output_note, group2_selected]]
+        custom_slice=QtWidgets.QLabel('NOTE: If None of the custom slicing axes are enabled (sagittal, coronal, axial) then the default slicing parameters will be used')
+        default_dim=QtWidgets.QLabel('NOTE: Default Dimensions are calculated based on number of rows and columns')
+        output_note=QtWidgets.QLabel('NOTE: Output Filenames MUST NOT uses spaces. Use underscore instead')
+        group2_selected=QtWidgets.QLabel('NOTE: Must Specify All Output Filenames if Group 2 input data folder is selected')
+        [x.setFont(QtGui.QFont("Sans Serif 10",weight=QtGui.QFont.Black)) for x in [group2_note, custom_slice, default_dim, output_note, group2_selected]]
 
         # Create push buttons for Folder Selection
         self.btn1 = QtWidgets.QPushButton('Select Group 1 input data folder', self)
         self.btn2 = QtWidgets.QPushButton('Select Group 2 input data folder', self)
         self.btn3 = QtWidgets.QPushButton('Select Output folder', self)
 
-        # colourmap push button option
+        #colourmap push button option
         btn4 = QtWidgets.QPushButton('Matplotlib Pyplot Colourmap Options', self)
 
         # Enable/Disabled Checkbox Options
@@ -130,13 +126,13 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         self.coronal_status = self.coronal_enable.isChecked()
         self.axial_enable = QtWidgets.QCheckBox("Enable Custom Axial Slicing")
         self.axial_status = self.axial_enable.isChecked()
-        self.fig_enable = QtWidgets.QCheckBox("Enable Custom Figure Dimensions")
+        self.fig_enable=QtWidgets.QCheckBox("Enable Custom Figure Dimensions")
         self.fig_status = self.fig_enable.isChecked()
 
         # Run GUI Button
         run = QtWidgets.QPushButton('Run', self)
         run.setStyleSheet("background-color: rgb(53,190,68);")
-        # Help/Documention Button & Layout
+        #Help/Documention Button & Layout
         help_doc = QtWidgets.QPushButton('Help', self)
         help_doc.setStyleSheet("background-color: rgb(255,255,90);")
         help_run_layout = QtWidgets.QHBoxLayout()
@@ -154,7 +150,7 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         self.voxels.showPopup = self.showPopupAndCheck
         self.voxels.addItems(["", "10", "25", "50"])
         self.voxels.setCurrentIndex(0)
-        self.percentile = QtWidgets.QSpinBox()
+        self.percentile=QtWidgets.QSpinBox()
         self.percentile.setValue(10)
         self.percentile.setMinimum(0)
         self.percentile.setMaximum(99)
@@ -166,11 +162,11 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         self.cmap_neg.setText("Blues")
         self.cmap_neg.setAlignment(QtCore.Qt.AlignRight)
 
-        # custom slice axis input and layout
-        self.axis = []
-        self.slice_layout = []
-        for i in range(3):
-            slices = []
+        #custom slice axis input and layout
+        self.axis=[]
+        self.slice_layout=[]
+        for i in range(3):        
+            slices=[]
             self.slice_layout.append(QtWidgets.QHBoxLayout())
             for j in range(5):
                 slices.append(QtWidgets.QSpinBox())
@@ -179,9 +175,10 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
                 slices[j].setAlignment(QtCore.Qt.AlignLeft)
                 slices[j].setDisabled(True)
                 self.slice_layout[i].addWidget(slices[j])
+                slices[j].setStyleSheet("background: white")
             self.axis.append(slices)
-
-        # custom figure dimensions input and layout
+        
+        #custom figure dimensions input and layout
         fig_width = QtWidgets.QDoubleSpinBox()
         fig_width.setMinimum(1)
         fig_width.setMaximum(60.0)
@@ -243,17 +240,11 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         opt_form.addRow("Colourmap for Positive Values", self.cmap_pos)
         opt_form.addRow("Colourmap for Negative Values", self.cmap_neg)
         opt_form.addRow("Enable Custom Sagittal Slicing", self.sagittal_enable)
-        opt_form.addRow(
-            "sagittal slicing: start_slice_number, interval, number_of_slices, number_of_rows, number_of_columns",
-            self.slice_layout[0])
+        opt_form.addRow("sagittal slicing: start_slice_number, interval, number_of_slices, number_of_rows, number_of_columns", self.slice_layout[0])
         opt_form.addRow("Enable Custom Coronal Slicing", self.coronal_enable)
-        opt_form.addRow(
-            "coronal slicing: start_slice_number, interval, number_of_slices, number_of_rows, number_of_columns",
-            self.slice_layout[1])
+        opt_form.addRow("coronal slicing: start_slice_number, interval, number_of_slices, number_of_rows, number_of_columns", self.slice_layout[1])
         opt_form.addRow("Enable Custom Axial Slicing", self.axial_enable)
-        opt_form.addRow(
-            "axial slicing: start_slice_number, interval, number_of_slices, number_of_rows, number_of_columns",
-            self.slice_layout[2])
+        opt_form.addRow("axial slicing: start_slice_number, interval, number_of_slices, number_of_rows, number_of_columns", self.slice_layout[2])
         opt_form.addRow(custom_slice)
         opt_form.addRow("Enable Custom Figure Dimensions", self.fig_enable)
         opt_form.addRow(default_dim)
@@ -280,10 +271,8 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         btn4.clicked.connect(lambda: self.color_plot('Matplotlib Colourmap Options', plt.colormaps()))
 
         # Connect the checked signal to the state_changed handlers
-        self.sagittal_enable.stateChanged.connect(
-            lambda: self.state_changed("sagittal_enable", "sagittal_status", 0, self.axis))
-        self.coronal_enable.stateChanged.connect(
-            lambda: self.state_changed("coronal_enable", "coronal_status", 1, self.axis))
+        self.sagittal_enable.stateChanged.connect(lambda: self.state_changed("sagittal_enable", "sagittal_status", 0, self.axis))
+        self.coronal_enable.stateChanged.connect(lambda: self.state_changed("coronal_enable", "coronal_status", 1, self.axis))
         self.axial_enable.stateChanged.connect(lambda: self.state_changed("axial_enable", "axial_status", 2, self.axis))
         self.fig_enable.stateChanged.connect(lambda: self.state_changed("fig_enable", "fig_status", 0, self.fig_dim))
         # Connect the clicked signal to the print_input handler
@@ -367,65 +356,156 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
                              labelbottom=False, bottom=False)
         fig.subplots_adjust(left=0.01, right=0.99, top=0.875, bottom=0.01, hspace=2.5, wspace=0.25)
         plt.show()
-        # convert inputs to proper datatype, print and assign to self.inputs
 
     def print_input(self):
-        # get folder directories
-        self.inputs.group1 = check_attr_group1(self)
-        self.inputs.group2 = check_attr_group2(self)
-        self.inputs.dir_outfile = check_attr_dir_outfile(self)
-        # retrieve other inputs
+        '''validate inputs and convert to proper datatype, print and assign to self.inputs'''
+        # validation functions
+        def check_attr_folder(folder):
+            '''check if folder input given'''
+            if hasattr(self.inputs, folder)==False:
+                if folder == "dir_outfile":
+                    setattr(self.inputs, folder, os.getcwd())
+                else:
+                    setattr(self.inputs, folder, None)
+        def cmap_check(cmap, select_box):
+            '''check selected colourmap name is in current matplotlib version'''
+            if cmap == "":
+                select_box.setStyleSheet("background-color: rgb(255,255,159)")
+                return(self.msgbox("Missing Colourmap for Positive Values"))
+            elif cmap not in plt.colormaps():
+                select_box.setStyleSheet("background-color: rgb(255,255,159)")
+                return(self.msgbox('Invalid Colourmap Entered: {} \n'.format(cmap) + 'Matplotlib Colourmap Options: \n' + str(plt.colormaps()[:]).strip('[]').replace("'", "")))
+            else:
+                return(True)
+        def contain_check(arr, value, select_box, msg):
+            '''check if matching value'''
+            if value not in arr:
+                select_box.setStyleSheet("background-color :rgb(255,255,159)")
+                return(self.msgbox(msg))
+            else:
+                return(True)
+        def axis_append(attr, ind):
+            '''check values of axis spinbox'''
+            if getattr(self, attr):
+                axis=[int(self.axis[ind][i].text()) for i in range(5)]
+                return(axis)
+            else:
+                return([nan])
+
+        #will close GUI after checking if arguments are valid
+        self.closing=True
+
+        #if run previously reset all highlighted objects back to white
+        [x.setStyleSheet("background-color: white;") for x in [self.btn1, self.btn2, self.voxels, self.cmap_pos, self.cmap_neg, self.outfiles_g1,
+                                                               self.outfiles_g2, self.outfiles_dif, self.extensions, self.fig_dim[0][0], self.fig_dim[0][1],
+                                                               self.dots_per_inch, self.axis[0][3], self.axis[1][3], self.axis[2][3], self.axis[0][4],
+                                                               self.axis[1][4], self.axis[2][4]]]
+
+        #validate folder directories
+        check_attr_folder("group1")
+        check_attr_folder("group2")
+        check_attr_folder("dir_outfile")
+
+        if isinstance(self.inputs.group1, type(None)):
+            self.btn1.setStyleSheet("background-color : rgb(255,255,159)") 
+            self.closing=self.msgbox("Must Select Valid Group 1 Input Data Folder")
+        elif self.inputs.group2 == self.inputs.group1:
+            self.btn1.setStyleSheet("background-color : rgb(255,255,159)") 
+            self.btn2.setStyleSheet("background-color : rgb(255,255,159)") 
+            self.closing=self.msgbox("Group 1 and Group 2 Input Data must not be contained in the same folder")
+        if self.inputs.group1 == self.inputs.dir_outfile:
+            self.btn1.setStyleSheet("background-color : rgb(255,255,159)")
+            self.btn3.setStyleSheet("background-color : rgb(255,255,159)")
+            self.closing=self.msgbox("Group 1 Input Data Folder and Output Folder must not be the same folder")
+        if self.inputs.group2 == self.inputs.dir_outfile:
+            self.btn2.setStyleSheet("background-color : rgb(255,255,159)")
+            self.btn3.setStyleSheet("background-color : rgb(255,255,159)")
+            self.closing=self.msgbox("Group 2 Input Data Folder and Output Folder must not be the same folder")
+
+        #retrieve other inputs
         gaussin = float(self.gauss.text())
-        percentile=int(self.percentile.text())
-        voxel = int(self.voxels.currentText())
+        percentile=int(self.percentile.text())  
+
+        #validate voxels
+        voxel = self.voxels.currentText()
+        self.closing=min(contain_check(["10", "25", "50"], voxel, self.voxels, "Must Select Valid Voxel Size"), self.closing)
+        if self.closing:
+            voxel=int(voxel)
+
+        #validate colourmaps
         cmap_p = str(self.cmap_pos.text())
         cmap_n = str(self.cmap_neg.text())
 
-        # Retrieve any custom axis values
-        s_cut = []
-        c_cut = []
-        a_cut = []
+        self.closing=min(cmap_check(cmap_p, self.cmap_pos), self.closing)
+        if isinstance(self.inputs.group2, type(None)) == False:
+            self.closing=min(cmap_check(cmap_n, self.cmap_neg), self.closing)
 
-        if self.sagittal_status:
-            for i in range(5):
-                s_cut.append(int(self.axis[0][i].text()))
-        else:
-            s_cut = nan
-        if self.coronal_status:
-            for i in range(5):
-                c_cut.append(int(self.axis[1][i].text()))
-        else:
-            c_cut = nan
-        if self.axial_status:
-            for i in range(5):
-                a_cut.append(int(self.axis[2][i].text()))
-        else:
-            a_cut = nan
-        # retrieve figure dimensions
-        figure_dimensions_height = float(self.fig_dim[0][0].text())
-        figure_dimensions_width = float(self.fig_dim[0][1].text())
+        #Retrieve any custom axis values
+        s_cut=axis_append("sagittal_status", 0)
+        c_cut=axis_append("coronal_status", 1)
+        a_cut=axis_append("axial_status", 2)
 
+        #retrieve outfiles and validate name properties
+        g1=str(self.outfiles_g1.text())
+        g2=str(self.outfiles_g2.text())
+        dif=str(self.outfiles_dif.text())
+        outfiles=[]
+
+        if ((' ' in g1) or len(g1)==0) and isinstance(self.inputs.group2, type(None)):
+            self.outfiles_g1.setStyleSheet("background-color : rgb(255,255,159)")
+            self.closing = self.msgbox("Output Filename Group 1 must be filled and not contain a space character")
+        elif isinstance(self.inputs.group2, type(None))==False:
+            check=[outfile.setStyleSheet("background-color : rgb(255,255,159)") if ((' ' in string) or len(string)==0) else True
+                   for string, outfile in zip([g1, g2, dif], [self.outfiles_g1, self.outfiles_g2, self.outfiles_dif])]
+            if None in check:
+                self.closing=False
+                self.msgbox("All Output Filename Arguments must be filled and not contain a space character:"
+                            "\n-Output Filename Group 1 \n-Output Filename Group 2 \n-Output Filename Difference of Groups (Group 2 - Group 1)")
+            else:
+                outfiles=[g1, g2, dif]
+        else:
+            outfiles=[g1]
+
+        #retrieve extension and check if entered       
+        extensions= str(self.extensions.text())
+        if extensions=="":
+            self.extensions.setStyleSheet("background-color :rgb(255,255,159)")
+            self.closing=self.msgbox("Missing Figure Extension")
+            
+        dots_per_inch= int(self.dots_per_inch.text())
+        #retrieve figure dimensions
+        figure_dim=[float(self.fig_dim[0][0].text()), float(self.fig_dim[0][1].text())]
         if self.fig_status:
-            figure_dimensions = [figure_dimensions_width, figure_dimensions_height]
+            #validate that height and width length x DPI doesn't exceed maximum pixel size
+            if figure_dim[0]*dots_per_inch>65535:
+                self.fig_dim[0][0].setStyleSheet("background-color: rgb(255,255,159)")
+                self.dots_per_inch.setStyleSheet("background-color: rgb(255,255,159)")
+                self.closing=self.msgbox("Width resolution exceeds maximum. Width: {}. DPI: {}. Width x DPI = {}. Cannot exceed 65535".format(fig_dim[0], dots_per_inch, fig_dim[0]*dots_per_inch))
+            if figure_dim[1]*dots_per_inch>65535:
+                self.fig_dim[0][1].setStyleSheet("background-color: rgb(255,255,159)")
+                self.dots_per_inch.setStyleSheet("background-color: rgb(255,255,159)")
+                self.closing=self.msgbox("Height resolution exceeds maximum. Height: {}. DPI: {}. Height x DPI = {}. Cannot exceed 65535".format(fig_dim[1], dots_per_inch, fig_dim[1]*dots_per_inch))
         else:
-            figure_dimensions = None
+            figure_dim=None
+            #validate that rows and columns length x DPI doesn't exceed maximum pixel size
+            cuts=np.array([s_cut, c_cut, a_cut])
+            #exclude nan values from calculation
+            cuts_ind=[ind for ind, value in enumerate(cuts) if not isinstance(value[-1], float)]
+            #validate col
+            for i, axis in zip(cuts_ind, cuts[cuts_ind]):
+                max_col = min(axis[4], 6)
+                if max_col * dots_per_inch > 65535:
+                    self.axis[i][4].setStyleSheet("background-color:rgb(255,255,159)")
+                    self.closing = self.msgbox("Width Resolution exceeds maximum. Cols: {}. DPI: {}. (Min value of either Max Width or Max Col) x DPI = {} x {} = {}. Cannot exceed 65535. Note: Max Width is capped at 60".format(
+                                    axis[4], dots_per_inch, max_col, dots_per_inch, max_col * dots_per_inch))
+            #validate row
+            max_row=min(sum([i[3] for i in cuts[cuts_ind]]), 60)
+            if max_row * dots_per_inch > 65535:
+                [self.axis[i][3].setStyleSheet("background-color:rgb(255,255,159)") for i in cuts_ind]
+                self.closing = self.msgbox("Height Resolution exceeds maximum. Rows: {}. DPI: {}. (Min value of either Max Height or Total Rows) x DPI = {} x {} = {}. Cannot exceed 65535. Note Max Height is capped at 60".format(
+                    [i[3] for i in cuts[cuts_ind]], dots_per_inch, max_row, dots_per_inch, max_row * dots_per_inch))
 
-        # retrieve outfiles and validate name properties
-        g1 = str(self.outfiles_g1.text())
-        g2 = str(self.outfiles_g2.text())
-        dif = str(self.outfiles_dif.text())
-
-        outfiles = []
-
-        for i in [g1, g2, dif]:
-            outfiles.append(i)
-            if isinstance(self.inputs.group2, type(None)):
-                break
-
-        extensions = str(self.extensions.text())
-        dots_per_inch = int(self.dots_per_inch.text())
-        template = str(self.template.text())
-        # assign to self.input to return to heatmap script
+        #assign to self.input to return to heatmap script
         self.inputs.sigma = gaussin
         self.inputs.vox = voxel
         self.inputs.percentile = percentile
@@ -434,28 +514,29 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         self.inputs.sagittal = s_cut
         self.inputs.coronal = c_cut
         self.inputs.axial = a_cut
-        self.inputs.figure_dim = figure_dimensions
-        self.inputs.outfile = outfiles
-        self.inputs.extension = extensions
-        self.inputs.dpi = dots_per_inch
-        self.inputs.t = template
+        self.inputs.figure_dim = figure_dim
+        self.inputs.outfile=outfiles
+        self.inputs.extension=extensions
+        self.inputs.dpi=dots_per_inch
 
+        print('Group 1 folder:%s', self.inputs.group1)
+        print('Group 2 folder:%s', self.inputs.group2)
+        print('Output folder:%s', self.inputs.dir_outfile)
         print('gauss :%f' % gaussin)
-        print('voxel :%i' % voxel)
+        print('voxel :%s' % voxel)
         print('percentile :%d' % percentile)
         print('colourmap_pos :%s' % cmap_p.lstrip())
         print('colourmap_neg :%s' % cmap_n.lstrip())
         print('sagittal : %s' % s_cut)
         print('coronal : %s' % c_cut)
         print('axial : %s' % a_cut)
-        print('figure dimensions %s' % figure_dimensions)
-        print('Output Filename(s): %s' % outfiles)
+        print('figure dimensions %s' % figure_dim)
+        print('Output Filename(s): %s' % outfiles) 
         print('Figure Extension: %s' % extensions)
         print('DPI: %i' % dots_per_inch)
-        print('Template: %s' % template)
 
-        if self.closing == True:
-            self.inputs.run = True
+        if self.closing==True:
+            self.inputs.run=True
             self.close()
 
     def closeEvent(self, event):
