@@ -1,11 +1,10 @@
 ARG MIRACL_VERSION=latest
 FROM mgoubran/miracl:base-$MIRACL_VERSION
-#FROM mgoubran/miracl-modified:latest
 
 ADD . /code
-RUN ls /code
-RUN git clone https://github.com/sergivalverde/nifti_tools && \
-    mv nifti_tools /code/depends/NIFTI_TOOLS && \
+# delete ruamel pkg
+RUN rm -rf $(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")/ruamel* && \
+    pip install markupsafe==2.0.1 && \
     pip install -e /code/
 ENV MIRACL_HOME=/code/miracl
 
@@ -13,9 +12,9 @@ ENV MIRACL_HOME=/code/miracl
 #--- Allen atlas alias ----
 
 WORKDIR /tmp
-RUN mkdir -p "/code/atlases/" && \
-    wget -nH -r --cut-dirs 3 --no-parent -A txt,json,csv,nii.gz -P /code/atlases http://web.stanford.edu/group/zeinehlab/MIRACLextra/
-
+RUN mkdir -p /code/atlases/ara && \
+    wget -P /code/atlases https://www.dropbox.com/sh/j31vurlp6h4lvod/AAAIKpYJQizkAte3Ju5DZYj8a --content-disposition && \
+    unzip /code/atlases/ara.zip -x / -d /code/atlases/ara
 # RUN conda install -y --no-update-deps pyqt=5
 
 ENV aradir "/code/atlases/ara"
@@ -40,9 +39,9 @@ ENV snaplut "/code/atlases/ara/ara_snaplabels_lut.txt"
 ENV freelut "/code/atlases/ara/ara_freeviewlabels_lut.txt"
 
 # ANTs commands
-RUN ln -s "/code/depends/ants/antsRegistrationMIRACL.sh" /usr/bin/ants_miracl_clar && \
+RUN ln -sf "/code/depends/ants/antsRegistrationMIRACL.sh" /usr/bin/ants_miracl_clar && \
     chmod +x /usr/bin/ants_miracl_clar
-RUN ln -s "/code/depends/ants/antsRegistrationMIRACL_MRI.sh" /usr/bin/ants_miracl_mr && \
+RUN ln -sf "/code/depends/ants/antsRegistrationMIRACL_MRI.sh" /usr/bin/ants_miracl_mr && \
     chmod +x /usr/bin/ants_miracl_mr
 ENV ANTSPATH "${ANTSPATH}:/code/depends/ants"
 
@@ -50,4 +49,5 @@ ENV IN_DOCKER_CONTAINER Yes
 
 ################################################################################
 
+#ENTRYPOINT ["/opt/miniconda/bin/miracl"]
 ENTRYPOINT ["/bin/bash"]
