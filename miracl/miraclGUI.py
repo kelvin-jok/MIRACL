@@ -230,7 +230,18 @@ nestedict = {
                 'name': 'Paired-ttest ipsi/contra hemispheres',
                 'script': 'miracl stats paired_ttest',
                 'helpmsg': 'Computes paired_ttest test between both hemispheres for all labels across mice'
+            },
+            1: {
+                'name': 'heatmap group visual',
+                'script': 'miracl stats heatmap_group',
+                'helpmsg': 'Returns mean group heatmap plots, mean nii file based, and svg check registration based on input data'
+            },
+            2: {
+                'name': 'plot single subj visual',
+                'script': 'miracl stats plot_subj',
+                'helpmsg': "Returns bar plots based on label volumes from 'miracl lbl stats'"
             }
+
         }
     },
 
