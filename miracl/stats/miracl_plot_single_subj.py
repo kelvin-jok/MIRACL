@@ -12,6 +12,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pylab as plt
 import scipy.stats
+from miracl.stats import stats_gui_plot_single_subj
 
 # inputs
 # csv file[s]
@@ -43,7 +44,7 @@ def helpmsg():
 
     Optional arguments:
 
-        -o Output file name
+	    -d Directory Output 
 
         -s Sort values by, options are:
 
@@ -72,6 +73,7 @@ def parsefn():
         parser.add_argument('-i', '--in_csv', type=str, help="CSV file (generated from `miracl lbls stats`")
         parser.add_argument('-s', '--sort', type=str, help="Value to sort data by", default='Mean')
         parser.add_argument('-th', '--threshold', type=float, help="Quantile threshold", default=0.75)
+        parser.add_argument('-d', '--dir_outfile', type=str, help="Directory Output", default=os.getcwd())
 
         return parser
 
@@ -82,18 +84,29 @@ def parse_inputs(parser, args):
         print("Running in GUI mode")
 
         # pass the results of the gui here
-        args = None
+        args = stats_gui_plot_single_subj.main()
+
+        if hasattr(args,"run")==False:
+            print("Plot Single Subject GUI Window was closed")
+            sys.exit()  
+
+    else:
+        if isinstance(args, list):
+            args, unknown = parser.parse_known_args()
+    
+        print("\n running in script mode \n")
 
     try:
         input_csv = args.in_csv
         sort = args.sort
         threshold = args.threshold
+        output_dir = args.dir_outfile
     except NameError as err:
         print(err)
 
-    return input_csv, sort, threshold
+    return input_csv, sort, threshold, output_dir
 
-def generate_plot(input_csv, sort, threshold):
+def generate_plot(input_csv, sort, threshold, output_dir):
     """
     """
     # read csv, sort by value, drop quantile
@@ -109,23 +122,23 @@ def generate_plot(input_csv, sort, threshold):
     f = sns.barplot(sort,"acronym",data=in_df_sort_thresh, palette="Blues_r")
     f.set(xlabel=f'{sort}', ylabel='Region acronym')
     plt.tight_layout()
-    f.figure.savefig(f'{filename_no_ext}_barplot_acronyms.png', dpi=300)
-
+    f.figure.savefig('{}/{}_barplot_acronyms.png'.format(output_dir, filename_no_ext.rsplit('/', 1)[-1]), dpi=300)
+    print('{}/{}_barplot_acronyms.png'.format(output_dir, filename_no_ext.rsplit('/', 1)[-1]))
     plt.figure(figsize=(20,20))
     f = sns.barplot(sort,"name",data=in_df_sort_thresh, palette="Blues_r")
     f.set(xlabel=f'{sort}', ylabel='Region')
     plt.yticks(rotation=30)
     plt.tight_layout()
-    f.figure.savefig(f'{filename_no_ext}_barplot.png', dpi=300)
+    f.figure.savefig('{}/{}_barplot.png'.format(output_dir, filename_no_ext.rsplit('/', 1)[-1]), dpi=300)
 
 
 def main(args):
     parser = parsefn()
-    input_csv, sort, threshold = parse_inputs(parser, args)
+    input_csv, sort, threshold, output_dir = parse_inputs(parser, args)
 
     # run sta tract generation
     print('Generating plot for single subject\n')
-    generate_plot(input_csv, sort, threshold)
+    generate_plot(input_csv, sort, threshold, output_dir)
 
 
 if __name__ == "__main__":

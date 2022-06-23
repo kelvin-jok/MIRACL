@@ -7,8 +7,8 @@ import argparse
 import sys
 import nibabel as nib
 from dipy.tracking import utils
-from nibabel import trackvis
-
+#from nibabel import trackvis #depreciated
+from nibabel.streamlines import load
 from miracl.sta import sta_gui
 
 def helpmsg():
@@ -81,7 +81,8 @@ def parse_inputs(parser, args):
 
 def gen_dens(tracts, ref_vol, out_dens):
     print('reading sta streamlines')
-    streams, hdr = trackvis.read(tracts)
+    #streams, hdr = trackvis.read(tracts) depreciated...
+    streams, hdr = load(tracts) #need to confirm if accurate alternative to trackvis ... returns object containing data & metadata -> https://github.com/nipy/nibabel/blob/62aea04248e70d7c4529954ca41685d7f75a0b1e/nibabel/streamlines/__init__.py
     streamlines = [s[0] for s in streams]
 
     print('reading reference volume')
