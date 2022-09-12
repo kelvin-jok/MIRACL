@@ -14,7 +14,7 @@ import numpy as np
 from math import nan
 
 #heatmap GUI HELP window
-class help_window(QtWidgets.QWidget):                           # <===
+class help_window(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Heatmap GUI Help")
@@ -283,7 +283,7 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
         help_doc.clicked.connect(self.help_window_show)
         # store the results of the STATS flags in an obj similar to args
         self.inputs = type('', (), {})()
-    #collaspe
+
     def optional_arg(self, box, check, status):
         check=getattr(self,check).isChecked()
         if check:
@@ -338,6 +338,7 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
     def help_window_show(self): 
         self.help_window = help_window()
         self.help_window.show()
+    #matplotlib colorbars window
     def color_plot(self, title, colormaps):
         size=len(colormaps[:])
         fig =plt.figure(figsize=(15, 8), dpi=100)
@@ -352,7 +353,7 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
                            labelbottom=False, bottom=False)
         fig.subplots_adjust(left=0.01, right=0.99, top=0.875, bottom=0.01, hspace=2.5, wspace=0.25)
         plt.show()
-    #convert inputs to proper datatype, print and assign to self.inputs
+    #validate inputs and convert to proper datatype, print and assign to self.inputs
     def print_input(self):
         # validation functions
         def check_attr_folder(folder):
@@ -381,7 +382,7 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
                 axis=[int(self.axis[ind][i].text()) for i in range(5)]
                 return(axis)
             else:
-                return(nan)
+                return([nan])
 
         #will close GUI after checking if arguments are valid
         self.closing=True
@@ -481,7 +482,7 @@ class STATSHeatmapMenu(QtWidgets.QWidget):
             #validate that rows and columns length x DPI doesn't exceed maximum pixel size
             cuts=np.array([s_cut, c_cut, a_cut])
             #exclude nan values from calculation
-            cuts_ind=[ind for ind, value in enumerate(cuts) if isinstance(value, list)]
+            cuts_ind=[ind for ind, value in enumerate(cuts) if not isinstance(value[-1], float)]
             #validate col
             for i, axis in zip(cuts_ind, cuts[cuts_ind]):
                 max_col = min(axis[4], 6)

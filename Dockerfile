@@ -15,6 +15,7 @@ WORKDIR /tmp
 RUN mkdir -p /code/atlases/ara && \
     wget -P /code/atlases https://www.dropbox.com/sh/j31vurlp6h4lvod/AAAIKpYJQizkAte3Ju5DZYj8a --content-disposition && \
     unzip /code/atlases/ara.zip -x / -d /code/atlases/ara
+
 # RUN conda install -y --no-update-deps pyqt=5
 
 ENV aradir "/code/atlases/ara"
@@ -49,5 +50,6 @@ ENV IN_DOCKER_CONTAINER Yes
 
 ################################################################################
 
-#ENTRYPOINT ["/opt/miniconda/bin/miracl"]
-ENTRYPOINT ["/bin/bash"]
+# Temporarily uncommented to allow interactive shell access to Docker container
+ENTRYPOINT ["/opt/miniconda/bin/miracl"]
+#ENTRYPOINT ["/bin/bash"]

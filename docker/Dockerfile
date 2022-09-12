@@ -104,7 +104,7 @@ ENV PATH="/usr/lib/fsl/5.0:${PATH}"
 WORKDIR /code
 RUN pip3 install scikit-image==0.14.2 && \
     pip3 install cython h5py && \
-    pip3 install pandas==0.24.2 
+    pip3 install pandas==0.24.2
 
 #RUN alias python=python3
 

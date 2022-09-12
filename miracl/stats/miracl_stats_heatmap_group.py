@@ -134,19 +134,19 @@ def parsefn():
                         nargs=5,
                         type=int,
                         help="slicing across sagittal axis. \n 5 Arguments: start_slice slice_interval number_of_slices number_of_rows number_of_columns",
-                        default=nan)
+                        default=[nan])
     parser.add_argument('-c',
                         '--coronal',
                         nargs=5,
                         type=int,
                         help="slicing across coronal axis. \n 5 Arguments: start_slice interval number_of_slices number_of_rows number_of_columns",
-                        default=nan)
+                        default=[nan])
     parser.add_argument('-a',
                         '--axial',
                         nargs=5,
                         type=int,
                         help="slicing across axial axis. \n 5 Arguments: start_slice interval number_of_slices number_of_rows number_of_columns",
-                        default=nan)
+                        default=[nan])
     parser.add_argument('-f',
                         '--figure_dim',
                         type=float,
@@ -251,7 +251,7 @@ def parse_inputs(parser, args):
     row = []
     col = []
     for axis, tag in zip([sagittal, coronal, axial], ["s/sagittal", "c/coronal", "a/axial"]):
-        if type(axis) != float:
+        if type(axis[-1]) != float:
             min_check(axis[0], 0, "".join(("-", tag + " start_slice must not be a negative number. Current value: {}".format(axis[0]))))
             min_check(axis[1], 1,"".join(("-", tag + " interval must not less than 1. Current value: {}".format(axis[1]))))
             min_check(axis[2], 1, "".join(("-", tag + " number_of_slices  must not be less than 1. Current value: {}".format(axis[2]))))
@@ -266,6 +266,7 @@ def parse_inputs(parser, args):
                 y = x + 1
             elif tag == "a/axial":
                 z = max(x, y) + 1
+
 
     # if default slicing
     if x == y and y == z:
@@ -454,11 +455,11 @@ def slice_extract(input_path, cut_coords, x, y, z, atlas):
                 z_slices.append(img[:, i, :])
             else:
                 blank_slices="\n".join((blank_slices, "{} AXIS a/axial slice {} is blank".format(atlas, i)))
+        slices.append(z_slices)
     if len(blank_slices)>0:
         raise Exception(blank_slices)
     else:
-        slices.append(z_slices)
-    return (slices)
+        return (slices)
 
 
 # ----- slicing parameters -----
@@ -469,7 +470,7 @@ def slice_display(atlas, sagittal, coronal, axial, x, y, z):
 
     img_shape = [img_shape[2], img_shape[0], img_shape[1]]  # arrange as [L, P, I] order from [P, I, L]
     # default slices
-    if type(sagittal) == float and type(coronal) == float and type(axial) == float:
+    if type(sagittal[-1]) == float and type(coronal[-1]) == float and type(axial[-1]) == float:
         for i in range(3):
             cut_coords.append(
                 list(range(ceil(img_shape[i] / 17 * 3), ceil(img_shape[i] / 17) * 15 + 1, ceil(img_shape[i] / 17 * 2))))
@@ -478,7 +479,7 @@ def slice_display(atlas, sagittal, coronal, axial, x, y, z):
     else:
         ind = 0
         for axis, tag in zip([sagittal, coronal, axial], ["s/sagittal", "c/coronal", "a/axial"]):
-            if type(axis) != float:
+            if type(axis[-1]) != float:
                 cut_coords.append(list(range(axis[0], axis[0] + (axis[2] - 1) * axis[1] + 1, axis[1])))
                 print("AXIS {} slices {}".format(tag, cut_coords[-1]))
                 if max(cut_coords[-1]) > img_shape[ind]:
@@ -536,20 +537,22 @@ def figure_setup(cut_coords, cut_len, sagittal, coronal, axial, figure_dim, dpi)
     w = 7
     h = 3
     ax = []
+    cols=[]
     # rows/height ratio for subfigures
     rows = np.array([sagittal[-1], coronal[-1], axial[-1]])
-    rows = rows[~np.isnan(rows)]
-    rows = [rows if len(rows) > 0 else [1, 1, 1]]
+    selected=~np.isnan(rows)
+    rows = rows[selected].astype(int)
     # cols
-    cols = np.array([sagittal[-2], coronal[-2], axial[-2]])
-    cols = cols[~np.isnan(cols)]
-    cols = [cols if len(cols) > 0 else [1, 1, 1]]
-
+    if len(rows)>0:
+        cols = np.array([sagittal, coronal, axial])[selected]
+        cols = np.array([col[-2] for col in cols]).astype(int)
+    else:
+        rows=[1, 1, 1]
     # figure dimensions. Cap at 60 in x 60 in
     if isinstance(figure_dim, type(None)) == False:
         w = figure_dim[0]
         h = figure_dim[1]
-    elif len(rows) > 0:
+    elif len(cols) > 0:
         w = np.nanmax(cols)
         h = np.nansum(rows)
     slice_len = [len(x) for x in cut_coords]
@@ -559,10 +562,10 @@ def figure_setup(cut_coords, cut_len, sagittal, coronal, axial, figure_dim, dpi)
 
     # subfigure creation
     subfigs = fig.subfigures(cut_len, 1, wspace=0, hspace=0, squeeze=False, height_ratios=rows)
-    if len(rows) > 0:
+    if len(cols) > 0:
         for i in range(cut_len):
             subfigs[i][0].patch.set_alpha(0.0)
-            ax.append(subfigs[i][0].subplots(rows[i], cols[i], sharey=True))
+            ax.append(subfigs[i][0].subplots(cols[i], rows[i], sharey=True))
     else:
         for i in range(cut_len):
             subfigs[i][0].patch.set_alpha(0.0)
@@ -589,7 +592,7 @@ def plot(mean_img, mask, group, vox, cut_coords, cut_len, sagittal, coronal, axi
                 colormap(cn, cp, group=group), group, mask, mask_slices, slice_len)
     # Figure output adjustments
     fig.subplots_adjust(left=0.1, right=0.99, top=0.875, bottom=0.01, hspace=0, wspace=0)
-    fig.suptitle("".join(('Mean of ', outfile)), fontsize=10 / 3 * cut_len)
+    fig.suptitle("".join(('Mean of ', outfile)), horizontalalignment='left', verticalalignment='top', fontsize=10 / 3 * cut_len)
     if extension == "tiff":
         fig.savefig("".join((outdir, "/", outfile, "_mean_plot.tiff")), bbox_inches="tight",
                     pil_kwargs={"compression": "tiff_lzw"}, pad_inches=0)
