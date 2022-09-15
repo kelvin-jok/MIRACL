@@ -51,5 +51,5 @@ ENV IN_DOCKER_CONTAINER Yes
 ################################################################################
 
 # Temporarily uncommented to allow interactive shell access to Docker container
-#ENTRYPOINT ["/opt/miniconda/bin/miracl"]
-
+ENTRYPOINT ["/opt/miniconda/bin/miracl"]
+#ENTRYPOINT ["/bin/bash"]
